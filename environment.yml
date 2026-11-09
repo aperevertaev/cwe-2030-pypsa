@@ -1,0 +1,15 @@
+   name: cwe-2030-pypsa
+   channels:
+     - conda-forge
+   dependencies:
+     - python=3.11
+     - pypsa
+     - highspy
+     - pandas
+     - matplotlib
+     - pytest
+     - jupyterlab
+     - python-dotenv
+     - pip
+     - pip:
+         - entsoe-py

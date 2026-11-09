@@ -2,7 +2,16 @@
 
 An open, reproducible study of the German power market and its neighbours for 2030, built with [PyPSA](https://pypsa.org) and open data.
 
-> **Status:** work in progress (started November 2026). Results will be added block by block.
+> **Status:** work in progress (started November 2026). Results are added block by block.
+
+## Progress
+
+- [x] Conda environment and ENTSO-E API access
+- [x] Data loader with local caching (`src/entsoe_data.py`)
+- [x] Market overview of DE-LU and neighbours, 2024 (`notebooks/02_entsoe_2024.ipynb`)
+- [ ] Market overview 2025 (calibration year)
+- [ ] Block 1: model validation against actual prices
+- [ ] Blocks 2–6: 2030 scenarios
 
 ## Why this project
 
@@ -12,7 +21,7 @@ Germany's power system is changing fast: more wind and solar, more batteries, mo
 
 | # | Question | Main outputs |
 | --- | --- | --- |
-| 1 | Does the model reproduce 2024? | Modelled vs actual day-ahead prices, generation mix |
+| 1 | Does the model reproduce the calibration year? | Modelled vs actual day-ahead prices, generation mix |
 | 2 | What do prices and flows look like in 2030? | Prices by zone, cross-border flows, congestion hours, curtailment |
 | 3 | How much battery storage is worth building? | Optimal storage by zone, storage revenues, effect on price spreads |
 | 4 | Is one extra interconnector worth it? | Welfare change, congestion rent and CO2 vs annualised cost |
@@ -21,10 +30,27 @@ Germany's power system is changing fast: more wind and solar, more batteries, mo
 
 Blocks 1–4 are the core. Blocks 5–6 follow if time allows.
 
+## First findings: DE-LU day-ahead market 2024
+
+| Indicator | Value |
+| --- | --- |
+| Average price | 78.5 EUR/MWh |
+| Median price | 79.6 EUR/MWh |
+| Minimum / maximum price | −135.4 / 936.3 EUR/MWh |
+| Hours with negative prices | 457 |
+| Hours above 150 EUR/MWh | 361 |
+
+- **Solar shapes the daily price curve.** From April to September, midday prices are the lowest of the day, and even the monthly maximum prices stay low between 10:00 and 16:00.
+- **The evening peak grows from spring to autumn.** After sunset (18:00–21:00) prices rise, with monthly maxima above 300 EUR/MWh in September and October.
+- **The highest prices come in November and December.** Periods with little wind and sun ("Dunkelflaute") pushed prices above 300 EUR/MWh for most of the day in December and up to 936 EUR/MWh.
+- **Neighbours:** France is much cheaper in spring and summer (around 30 EUR/MWh in April–May), Poland is the most expensive zone most of the year, and DE-LU, NL, AT and CZ move closely together.
+
+For the model this means: block 1 should reproduce the price level, the daily shape and the price order between zones. Scarcity peaks of several hundred EUR/MWh are not expected to be captured by a simple cost-based model (see limitations).
+
 ## Scope
 
-- **Zones:** DE (one zone, or DE-North / DE-South in block 5), FR, NL, BE, PL, CZ, AT, DK
-- **Time:** hourly, 8,760 hours; 2024 for validation, 2030 for scenarios
+- **Zones:** DE-LU (one zone, or DE-North / DE-South in block 5), FR, NL, BE, PL, CZ, AT, DK1
+- **Time:** hourly, 8,760 hours; 2025 as calibration year, 2030 for scenarios
 - **Network:** zonal transport model with net transfer capacities (NTC)
 - **Model type:** linear dispatch and capacity expansion (no unit commitment)
 
@@ -32,48 +58,58 @@ Blocks 1–4 are the core. Blocks 5–6 follow if time allows.
 
 | Data | Source |
 | --- | --- |
-| Load, generation, day-ahead prices (2024) | [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/) via `entsoe-py` |
+| Load, generation, day-ahead prices | [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/) via `entsoe-py` |
 | 2030 installed capacities | ENTSO-E TYNDP 2024 scenario data |
 | Wind and solar profiles | renewables.ninja or `atlite` (ERA5) |
 | Technology costs | PyPSA `technology-data` |
 | Fuel and CO2 prices | Own assumptions in `config.yaml` |
 
-Only open data is used. API keys are kept in a local `.env` file and are never committed.
+Notes on data handling:
+
+- Downloads are cached as CSV in `data/raw/` and are not stored in the repository; they can be downloaded again at any time.
+- 15-minute load and generation data are averaged to hourly values. Since 1 October 2025 day-ahead prices have a 15-minute resolution; they are averaged to hourly values for the hourly model.
+- Data are trimmed to the exact calendar year, because the API can return extra hours at the edges of a period.
+- One missing DE-LU price in 2024 (2024-12-31 00:00) was filled by linear interpolation. Gaps longer than three hours are not filled.
 
 ## Tools
 
-PyPSA · linopy · HiGHS (open-source solver) · pandas · matplotlib · pytest
+PyPSA · linopy · HiGHS (open-source solver) · pandas · matplotlib · pytest · Jupyter
 
-## Repository structure (planned)
+## Repository structure
 
 ```
 cwe-2030-pypsa/
 ├── README.md
-├── environment.yml      # pinned package versions
-├── config.yaml          # zones, years, prices, scenarios
+├── environment.yml          # conda environment
 ├── src/
-│   ├── data_fetch.py    # ENTSO-E data, profiles, capacities
-│   ├── build_network.py # PyPSA network from config
-│   ├── scenarios.py     # study blocks 1–6
-│   └── plots.py
-├── tests/               # data checks and sanity tests
-└── results/             # CSV outputs and figures
+│   ├── entsoe_data.py       # ENTSO-E download with local caching
+│   └── check_entsoe.py      # API connection check
+├── notebooks/
+│   └── 02_entsoe_2024.ipynb # market overview DE-LU and neighbours
+└── data/raw/                # cached downloads (not in Git)
 ```
 
-## How to run (planned)
+Planned: `config.yaml`, `src/build_network.py`, `src/scenarios.py`, `tests/`, `results/`.
 
-```
-conda env create -f environment.yml
-conda activate cwe-2030-pypsa
-python src/data_fetch.py
-python src/scenarios.py --block 1
-```
+## How to run
+
+1. Create the environment:
+   ```
+   conda env create -f environment.yml
+   conda activate cwe-2030-pypsa
+   ```
+2. Get a free ENTSO-E API token and put it in a `.env` file in the project root (never commit this file):
+   ```
+   ENTSOE_API_KEY=your_token
+   ```
+3. Open the notebooks in `notebooks/` and run all cells. The first run downloads the data; later runs read the cache.
 
 ## Known limitations
 
 - NTC-based exchanges instead of flow-based market coupling
-- No unit commitment or ramping constraints
+- No unit commitment, ramping constraints or scarcity pricing; extreme price peaks will be underestimated
 - Simplified hydro and storage reservoirs
+- Hourly resolution, while the day-ahead market moved to 15-minute products in October 2025
 - 2030 inputs are scenario assumptions, not forecasts
 
 ## Author

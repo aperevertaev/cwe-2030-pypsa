@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project data (downloaded from ENTSO-E, can be recreated)
+data/
+
+# Local editor settings and test output
+.vscode/
+test.png
