@@ -9,7 +9,7 @@ An open, reproducible study of the German power market and its neighbours for 20
 - [x] Conda environment and ENTSO-E API access
 - [x] Data loader with local caching (`src/entsoe_data.py`)
 - [x] Market overview of DE-LU and neighbours, 2024 (`notebooks/02_entsoe_2024.ipynb`)
-- [ ] Market overview 2025 (calibration year)
+- [x] Market overview 2025, calibration year (`notebooks/02_entsoe_2025.ipynb`)
 - [ ] Block 1: model validation against actual prices
 - [ ] Blocks 2–6: 2030 scenarios
 
@@ -30,15 +30,37 @@ Germany's power system is changing fast: more wind and solar, more batteries, mo
 
 Blocks 1–4 are the core. Blocks 5–6 follow if time allows.
 
-## First findings: DE-LU day-ahead market 2024
+## First findings: DE-LU day-ahead market 2024 and 2025
 
-| Indicator | Value |
-| --- | --- |
-| Average price | 78.5 EUR/MWh |
-| Median price | 79.6 EUR/MWh |
-| Minimum / maximum price | −135.4 / 936.3 EUR/MWh |
-| Hours with negative prices | 457 |
-| Hours above 150 EUR/MWh | 361 |
+| Indicator | 2024 | 2025 |
+| --- | --- | --- |
+| Average price (EUR/MWh) | 78.5 | 89.3 |
+| Median price (EUR/MWh) | 79.6 | 92.4 |
+| Minimum price (EUR/MWh) | −135.4 | −250.3 |
+| Maximum price (EUR/MWh) | 936.3 | 583.4 |
+| Hours with negative prices | 457 | 576 |
+| Hours above 150 EUR/MWh | 361 | 635 |
+
+Hourly values; from October 2025 they are averages of four 15-minute prices, which smooths the most extreme quarter-hours.
+
+**2025 compared with 2024:** prices were higher on average and more volatile at both ends. There were about a quarter more hours with negative prices and almost twice as many hours above 150 EUR/MWh. The midday solar dip became deeper (May–June midday averages close to zero), while morning and evening peaks were stronger, especially in winter and in September evenings. The single highest price was lower than the December 2024 peak.
+
+**Neighbouring zones, average day-ahead price (EUR/MWh):**
+
+| Zone | 2024 | 2025 | Change |
+| --- | --- | --- | --- |
+| FR | 58.0 | 61.1 | +3.1 |
+| DK1 | 70.6 | 81.1 | +10.5 |
+| BE | 70.3 | 82.6 | +12.3 |
+| NL | 77.3 | 86.8 | +9.5 |
+| DE-LU | 78.5 | 89.3 | +10.8 |
+| CZ | 85.1 | 96.8 | +11.7 |
+| AT | 81.5 | 98.9 | +17.4 |
+| PL | 96.3 | 104.3 | +8.0 |
+
+The price order between zones stayed almost the same: France is the cheapest zone, Poland the most expensive, and DE-LU sits in the middle. Most zones became 8–17 EUR/MWh more expensive, but France only 3 EUR/MWh, so the average FR–DE spread grew from 20.5 to 28.2 EUR/MWh. A larger and persistent spread makes the FR–DE border a natural candidate for the interconnector analysis in block 4.
+
+**2024 in more detail:**
 
 - **Solar shapes the daily price curve.** From April to September, midday prices are the lowest of the day, and even the monthly maximum prices stay low between 10:00 and 16:00.
 - **The evening peak grows from spring to autumn.** After sunset (18:00–21:00) prices rise, with monthly maxima above 300 EUR/MWh in September and October.
@@ -85,7 +107,8 @@ cwe-2030-pypsa/
 │   ├── entsoe_data.py       # ENTSO-E download with local caching
 │   └── check_entsoe.py      # API connection check
 ├── notebooks/
-│   └── 02_entsoe_2024.ipynb # market overview DE-LU and neighbours
+│   ├── 02_entsoe_2024.ipynb # market overview DE-LU and neighbours, 2024
+│   └── 02_entsoe_2025.ipynb # market overview DE-LU and neighbours, 2025
 └── data/raw/                # cached downloads (not in Git)
 ```
 
